@@ -1,0 +1,137 @@
+"""It is done!"""
+
+
+import random
+
+
+def open_file(file_name):
+    """Takes a text file, and converts it to a string"""
+    with open(file_name+'.txt','r') as text_file:
+        fin=text_file.read()
+    return fin
+
+def delete_header(fin):
+    """deletes the headers from project Gutenberg books 13-2"""
+    k=0
+    while fin[0]!='*':
+        fin=fin[1:]
+    fin=(fin[73:])#"***...***
+    return fin
+
+def make_word_list(fin):#takes a file in string format
+    """exercise 13-1
+reads a file, breaks each line into words, strips whitespace
+and punctuation from the words, and converts them to lowercase."""
+    word_list=list()
+    for word in fin.split():#magic of fin.split(
+        if word!='':
+            #word=word.translate({ord(i):None for i in (string.punctuation+string.whitespace)})
+            #word=word.lower()
+            word_list.append(word)
+    return word_list
+
+def test_if_end(s):
+    """returns True if it is the end of a sentance, else it returns False"""
+    if s=='.' or s=='?' or s=='!':
+        return True
+    else:
+        return False
+def make_first(n,word_list,i):#makes first tuple of sentance for dictonary
+    """takes n for the scope of the markov analysis,
+the word list, and i for the position in the document.
+returns a list of the elements in the range [i:(n+i)] as long as they don't have
+any '.','!', or '?'s in them"""
+    k=n+i
+    pre=list()#
+    s=word_list[i]
+    pre.append(s)
+    i+=1
+    while i<(k) and test_if_end(s[-1])==False and i<len(word_list):
+        s=word_list[i]
+        pre.append((s))
+        i+=1
+    return pre,i
+        
+        
+def new_markov(word_list, n): #n is aka order
+    """more elegent way of the markov using split, and the choice methods.
+t is the text to be analyzed, n is the number of words that you want the analysis
+to."""
+    first=list()
+    pre_suf=dict()
+    i=0   
+    
+    #make first iteration
+        
+    while i<(len(word_list)-1):#-1?
+        pre,i=make_first(n,word_list,i)
+        first.append(tuple(pre))
+        while i<(len(word_list)) and test_if_end(pre[-1][-1])==False:
+            if tuple(pre) not in pre_suf:
+                pre_suf[tuple(pre)]=[word_list[i]]
+            else:
+                pre_suf[tuple(pre)].append(word_list[i])
+            del(pre[0])
+            pre.append(word_list[i])
+            i+=1
+        
+        
+    return first, pre_suf
+
+def generate_dict_with_orders_lt_n(txt_list,highest_order):
+    """takes a list of text and returns a randomly generated attempt
+text with similar properties of that text"""
+    first,markov_dict=new_markov(txt_list,highest_order) #only uses first from the highest order
+    i=highest_order-1
+    while i >=1:
+        markov_dict.update(new_markov(txt_list,i)[1])
+        i-=1
+    return first,markov_dict
+
+def sent_starter(random_text,first):
+    k=random.choice(first)
+    if test_if_end(k[-1][-1])==False:
+        random_text+=list(k)
+    while test_if_end(k[-1][-1])==True:
+        k=random.choice(first)
+        random_text+=list(k)
+    return random_text
+
+def word_appender(highest_order,markov_dict,random_text):#this has a problem!
+    """generates the next word for a word list"""
+    i=highest_order
+    #print(random_text[-i:],i)
+    while tuple(random_text[-i:]) not in markov_dict and i>1:
+        i-=1
+    tl=markov_dict[tuple(random_text[-i:])]
+    if len(tl)>1:
+        return random.choice(markov_dict[tuple(random_text[-i:])])
+    else:
+        return str(tl[0])
+
+def generate_random_text(txt_list,highest_order,length_of_text):
+    first,markov_dict=generate_dict_with_orders_lt_n(txt_list,highest_order)
+    random_text=list()
+    random_text=sent_starter(random_text,first)
+    while len(random_text)<length_of_text:
+        if test_if_end(random_text[-1][-1])==True:
+            random_text=sent_starter(random_text,first)
+        else:
+            random_text.append(word_appender(highest_order,markov_dict,random_text))
+            #is the problem here?
+    return random_text
+
+def text_generater_from_book(file_name,highest_order,length_of_text):
+    fin=open_file(file_name)
+    fin=delete_header(fin)
+    txt_list=make_word_list(fin)
+    return generate_random_text(txt_list,highest_order,length_of_text)
+
+def main():
+    file_name=str(input('give a txt file without the .txt added'))
+    highest_order=int(input('give the highest order'))
+    k=int(input('give the lenght of the random text you want'))
+    return text_generater_from_book(file_name,highest_order,k)
+    
+if __name__ == '__main__':
+    main()
